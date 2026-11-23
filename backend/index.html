@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Voting - ID Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            text-align: center;
+            padding-top: 80px;
+        }
+        .container {
+            background: white;
+            width: 400px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        input, button {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        h2 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Smart Voting System</h2>
+        <p>Step 1: Upload your ID card to verify your identity.</p>
+
+```
+    <form action="/verify" method="POST" enctype="multipart/form-data">
+        <label for="id_card">Upload ID Card:</label><br>
+        <input type="file" name="id_card" accept="image/*" required><br>
+        <button type="submit">Proceed to Face Verification</button>
+    </form>
+</div>
+```
+
+</body>
+</html>

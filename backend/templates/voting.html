@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ voting_data.title }}</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+    }
+
+    /* Admin icon */
+    #admin-icon {
+      position: fixed;
+      top: 15px;
+      right: 20px;
+      background-color: white;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    #admin-icon:hover { transform: scale(1.1); }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+
+    .panel {
+      background: white;
+      width: 380px;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease;
+    }
+
+    h2, h3 { color: #333; margin-bottom: 15px; }
+    input, button, select {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+      transform: scale(1.03);
+    }
+
+    /* Admin panel popup */
+    #admin-panel, #login-panel {
+      display: none;
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      width: 320px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .bar {
+      height: 18px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background-color: #007BFF;
+      transition: width 0.5s ease;
+    }
+    .footer {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      color: #555;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Admin Icon -->
+  <div id="admin-icon" onclick="toggleAdmin()">
+    ⚙️
+  </div>
+
+  <h2 style="margin-top: 60px;">{{ voting_data.title }}</h2>
+  <p>Secure Smart Voting Portal</p>
+
+  <div class="container">
+    <!-- VOTER PANEL -->
+    <div class="panel" id="voter-panel">
+      <h3>Cast Your Vote</h3>
+      <select id="voteSelect">
+        <option value="">-- Select Candidate --</option>
+        {% for c in voting_data.candidates %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+      <button onclick="castVote()">Submit Vote</button>
+      <p id="thanks" style="display:none; color:green; font-weight:bold;">Thank you for voting!</p>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  {% if role == 'admin' %}
+  <div class="panel" id="admin-panel">
+    <h3>Admin Control Panel</h3>
+    <input type="text" id="voteTitle" placeholder="Set Voting Title">
+    <button onclick="setTitle()">Set Title</button>
+
+    <input type="text" id="teamName" placeholder="Enter Candidate Name">
+    <button onclick="addCandidate()">Add Candidate</button>
+
+    <h4>Current Candidates:</h4>
+    <ul id="candidateList" style="list-style-type:none; padding:0;"></ul>
+
+    <h4>Live Results:</h4>
+    <div id="results"></div>
+
+    <button style="background:#dc3545;" onclick="window.location='/logout'">Logout</button>
+  </div>
+
+  {% else %}
+  <!-- ADMIN LOGIN -->
+  <div class="panel" id="login-panel">
+    <h3>Admin Login</h3>
+    {% if login_failed %}
+      <p style="color:red;">Invalid credentials!</p>
+    {% endif %}
+    <form method="POST" action="/voting">
+      <input type="text" name="username" placeholder="Admin ID" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login as Admin</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="footer">© 2025 SmartVote | Secure • Private • Fair</div>
+
+  <script>
+    let adminVisible = false;
+    function toggleAdmin() {
+      adminVisible = !adminVisible;
+      const panel = document.getElementById('{{ "admin-panel" if role == "admin" else "login-panel" }}');
+      panel.style.display = adminVisible ? 'block' : 'none';
+    }
+
+    {% if role == 'admin' %}
+    let data = {{ voting_data|tojson }};
+    const resultsDiv = document.getElementById('results');
+    const candidateList = document.getElementById('candidateList');
+
+    function refreshAdminUI() {
+      candidateList.innerHTML = '';
+      data.candidates.forEach(c => {
+        const li = document.createElement('li');
+        li.textContent = c;
+        candidateList.appendChild(li);
+      });
+      updateResults();
+    }
+
+    function setTitle() {
+      const title = document.getElementById('voteTitle').value.trim();
+      if (!title) return alert("Please enter a title");
+      fetch('/set_title', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      }).then(r => r.json()).then(updated => { data = updated; location.reload(); });
+    }
+
+    function addCandidate() {
+      const name = document.getElementById('teamName').value.trim();
+      if (!name) return alert("Enter candidate name");
+      fetch('/add_candidate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      }).then(r => r.json()).then(updated => { data = updated; refreshAdminUI(); });
+    }
+
+    function updateResults() {
+      resultsDiv.innerHTML = '';
+      const total = Object.values(data.votes).reduce((a,b)=>a+b,0);
+      for (const [name, votes] of Object.entries(data.votes)) {
+        const percent = total ? Math.round((votes/total)*100) : 0;
+        resultsDiv.innerHTML += `<div><strong>${name}</strong>: ${votes} votes (${percent}%)
+          <div class="bar" style="width:${percent}%;"></div></div>`;
+      }
+    }
+    refreshAdminUI();
+    {% else %}
+    function castVote() {
+      const candidate = document.getElementById('voteSelect').value;
+      if (!candidate) return alert("Please select a candidate");
+      fetch('/vote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidate })
+      }).then(r => r.json().then(d => ({ ok: r.ok, d }))).then(({ ok, d }) => {
+        if (ok) { document.getElementById('thanks').style.display = 'block'; }
+        else { alert(d.message || 'Vote rejected.'); }
+      });
+    }
+    {% endif %}
+  </script>
+</body>
+</html>

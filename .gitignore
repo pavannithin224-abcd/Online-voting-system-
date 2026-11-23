@@ -1,0 +1,8 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+uploads/
+*.jpg
+voting_data.json
+.env
